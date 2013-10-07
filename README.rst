@@ -20,4 +20,12 @@ Extensible static site generator (yes, another one)
 Features
 --------
 
-* TODO
+Doing:
+
+* Easily extensible or overridable - plug new "stages" in easily
+* Multiple languages.
+* Tests
+
+Done:
+
+* Nothing
