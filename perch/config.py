@@ -8,6 +8,13 @@ class Settings(dict):
         except KeyError:
             raise AttributeError('no key or attribute "%s"' % attr)
 
+    def __setattr__(self, attr, val):
+        raise TypeError('"settings" object does not support item assignment')
+
+    def __setitem__(self, attr, val):
+        raise TypeError('"settings" object does not support item assignment')
+
+
 constants = Settings({
     'stage_env_var': 'PERCH_CONFIG',
 
