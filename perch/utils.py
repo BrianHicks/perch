@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from py.path import local
+import os
 
 class ClassRegistry(dict):
     "hold and register classes by nickname, to select later"
@@ -9,3 +11,7 @@ class ClassRegistry(dict):
             return cls
 
         return inner
+
+def files_in_dir(target):
+    for l in local(target).visit(sort=True):
+        yield l

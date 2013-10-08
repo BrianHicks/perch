@@ -31,6 +31,7 @@ setup(
     package_dir={'perch': 'perch'},
     include_package_data=True,
     install_requires=[
+        "py >= 1.4.17",
     ],
     license="BSD",
     zip_safe=False,
