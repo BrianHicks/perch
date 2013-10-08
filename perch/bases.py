@@ -32,6 +32,10 @@ class StdIOHandler(object):
             for obj in self.process(sys.stdin):
                 sys.stdout.write(self.serializer.dump(obj) + '\n')
 
+        elif command == 'start':
+            for obj in self.start():
+                sys.stdout.write(self.serializer.dump(obj) + '\n')
+
         else:
             sys.stderr.write('Cannot do "%s"\n' % command)
 
