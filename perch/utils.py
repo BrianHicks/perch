@@ -14,4 +14,5 @@ class ClassRegistry(dict):
 
 def files_in_dir(target):
     for l in local(target).visit(sort=True):
-        yield l
+        if l.isfile():
+            yield l

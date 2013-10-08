@@ -36,8 +36,10 @@ def dir_with_files(request, tmpdir):
     for f in request.param:
         tmpdir.join(f).ensure(file=True)
 
-    return tmpdir
+    return tmpdir, request.param
 
 def test_files_in_dir(dir_with_files):
-    assert list(files_in_dir(dir_with_files)) == \
-           list(dir_with_files.visit(sort=True))
+    dir_with_files, fnames = dir_with_files
+
+    assert set(files_in_dir(dir_with_files)) == \
+           set([dir_with_files.join(fname) for fname in fnames])
