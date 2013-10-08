@@ -114,14 +114,14 @@ class TestConverter(object):
         message = list(stubbedconv.process(messages))[-1]
         assert {'msg': 'finish'} == message
 
-
-@pytest.mark.parametrize("message,items", [
-    (StringIO('{"filename": "a.txt"}'), 0),
-    (StringIO('{"filename": "b.txt"}'), 1),
-    (StringIO('{"filename": "c.txt"}'), 0),
-])
-def test_filter(bfilter, message, items):
-    assert items == len(list(bfilter.process(message)))
+def test_filter(bfilter):
+    xs = [
+        (StringIO('{"filename": "a.txt"}'), 0),
+        (StringIO('{"filename": "b.txt"}'), 1),
+        (StringIO('{"filename": "c.txt"}'), 0),
+    ]
+    for message, items in xs:
+        assert items == len(list(bfilter.process(message)))
 
 
 def test_renderer(renderer, messages):
