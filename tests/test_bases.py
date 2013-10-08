@@ -6,7 +6,7 @@ except ImportError:
     from io import StringIO
 import pytest
 
-from perch.bases import StdIOHandler, Converter, Filter
+from perch.bases import StdIOHandler, Converter, Filter, Renderer
 
 @pytest.fixture
 def stubbedio():
@@ -54,6 +54,15 @@ def bfilter():
             return 'b' in obj['filename']
 
     return BFilter()
+
+
+@pytest.fixture
+def renderer():
+    class ARenderer(Renderer):
+        def render(self, obj):
+            return 'path/to/a.txt', 'test content'
+
+    return ARenderer()
 
 
 class TestStdIOHandler(object):
@@ -113,3 +122,9 @@ class TestConverter(object):
 ])
 def test_filter(bfilter, message, items):
     assert items == len(list(bfilter.process(message)))
+
+
+def test_renderer(renderer, messages):
+    for item in renderer.process(messages):
+        assert item['filename'] == 'path/to/a.txt'
+        assert item['content'] == 'test content'
