@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 import pytest
 
 from perch.bases import StdIOHandler, Converter
@@ -57,3 +61,37 @@ class TestStdIOHandler(object):
         out, err = capsys.readouterr()
 
         assert err == 'Cannot do "blah"\n'
+
+
+@pytest.fixture
+def stubbedconv():
+    class Mangler(Converter):
+        name = 'test'
+        input_tags = ['a', 'b']
+
+        def parse(self, msg):
+            return {'msg': msg}
+
+        def final(self):
+            yield {'msg': 'finish'}
+
+    return Mangler()
+
+@pytest.fixture
+def messages():
+    return StringIO(
+        '{"filename": "a.txt"}\n'
+        '{"filename": "b.txt"}\n'
+        '{"filename": "c.txt"}\n'
+    )
+
+class TestConverter(object):
+    def test_process_starts_with_parse(self, stubbedconv, messages):
+        messages = stubbedconv.process(messages)
+
+        for message, letter in zip(list(messages)[:-1], 'abc'):
+            assert {'msg': {'filename': '%s.txt' % letter}} == message
+
+    def test_process_ends_with_final(self, stubbedconv, messages):
+        message = list(stubbedconv.process(messages))[-1]
+        assert {'msg': 'finish'} == message
