@@ -57,3 +57,11 @@ class Converter(StdIOHandler):
                 yield line
         except AttributeError:
             pass
+
+
+class Filter(StdIOHandler):
+    "base class for filters"
+    def process(self, in_file):
+        for line in in_file.readlines():
+            if self.check(self.serializer.load(line)):
+                yield line

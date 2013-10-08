@@ -6,7 +6,7 @@ except ImportError:
     from io import StringIO
 import pytest
 
-from perch.bases import StdIOHandler, Converter
+from perch.bases import StdIOHandler, Converter, Filter
 
 @pytest.fixture
 def stubbedio():
@@ -23,6 +23,37 @@ def stubbedio():
             yield {'msg': 'start'}
 
     return Stubbed()
+
+@pytest.fixture
+def stubbedconv():
+    class Mangler(Converter):
+        name = 'test'
+        input_tags = ['a', 'b']
+
+        def parse(self, msg):
+            return {'msg': msg}
+
+        def final(self):
+            yield {'msg': 'finish'}
+
+    return Mangler()
+
+@pytest.fixture
+def messages():
+    return StringIO(
+        '{"filename": "a.txt"}\n'
+        '{"filename": "b.txt"}\n'
+        '{"filename": "c.txt"}\n'
+    )
+
+
+@pytest.fixture
+def bfilter():
+    class BFilter(Filter):
+        def check(self, obj):
+            return 'b' in obj['filename']
+
+    return BFilter()
 
 
 class TestStdIOHandler(object):
@@ -63,28 +94,6 @@ class TestStdIOHandler(object):
         assert err == 'Cannot do "blah"\n'
 
 
-@pytest.fixture
-def stubbedconv():
-    class Mangler(Converter):
-        name = 'test'
-        input_tags = ['a', 'b']
-
-        def parse(self, msg):
-            return {'msg': msg}
-
-        def final(self):
-            yield {'msg': 'finish'}
-
-    return Mangler()
-
-@pytest.fixture
-def messages():
-    return StringIO(
-        '{"filename": "a.txt"}\n'
-        '{"filename": "b.txt"}\n'
-        '{"filename": "c.txt"}\n'
-    )
-
 class TestConverter(object):
     def test_process_starts_with_parse(self, stubbedconv, messages):
         messages = stubbedconv.process(messages)
@@ -95,3 +104,12 @@ class TestConverter(object):
     def test_process_ends_with_final(self, stubbedconv, messages):
         message = list(stubbedconv.process(messages))[-1]
         assert {'msg': 'finish'} == message
+
+
+@pytest.mark.parametrize("message,items", [
+    (StringIO('{"filename": "a.txt"}'), 0),
+    (StringIO('{"filename": "b.txt"}'), 1),
+    (StringIO('{"filename": "c.txt"}'), 0),
+])
+def test_filter(bfilter, message, items):
+    assert items == len(list(bfilter.process(message)))
