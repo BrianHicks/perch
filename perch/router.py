@@ -7,7 +7,7 @@ from .utils import files_in_dir
 
 
 class Discoverer(object):
-    categories = ['collector', 'filter', 'renderer']
+    categories = ['collector', 'renderer']
 
     def __init__(self, directory):
         self.directory = directory

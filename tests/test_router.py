@@ -35,10 +35,10 @@ class TestDiscoverer(object):
         d._find_stages()
         d._classify_stages()
 
-        assert d._classified == {"collector": set([tmpdir.join(name)]), 'filter': set(), 'renderer': set()}
+        assert d._classified == {"collector": set([tmpdir.join(name)]), 'renderer': set()}
 
     def test_discover(self, collectors):
         tmpdir, name = collectors
         
         d = Discoverer(tmpdir)
-        assert d.discover() == {"collector": set([tmpdir.join(name)]), 'filter': set(), 'renderer': set()}
+        assert d.discover() == {"collector": set([tmpdir.join(name)]), 'renderer': set()}
