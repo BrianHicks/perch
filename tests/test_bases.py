@@ -6,7 +6,7 @@ except ImportError:
     from io import StringIO
 import pytest
 
-from perch.bases import StdIOHandler, Converter, Filter, Renderer
+from perch.bases import StdIOHandler, Collector, Filter, Renderer
 
 @pytest.fixture
 def stubbedio():
@@ -26,7 +26,7 @@ def stubbedio():
 
 @pytest.fixture
 def stubbedconv():
-    class Mangler(Converter):
+    class Mangler(Collector):
         name = 'test'
         input_tags = ['a', 'b']
 
@@ -103,7 +103,7 @@ class TestStdIOHandler(object):
         assert err == 'Cannot do "blah"\n'
 
 
-class TestConverter(object):
+class TestCollector(object):
     def test_process_starts_with_parse(self, stubbedconv, messages):
         messages = stubbedconv.process(messages)
 

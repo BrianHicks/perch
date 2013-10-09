@@ -40,7 +40,7 @@ class StdIOHandler(object):
             sys.stderr.write('Cannot do "%s"\n' % command)
 
 
-class Converter(StdIOHandler):
+class Collector(StdIOHandler):
     "Base class for converters"
     def process(self, in_file):
         "process the file supplied by the superclass"
