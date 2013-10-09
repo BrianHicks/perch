@@ -13,6 +13,7 @@ def stubbedio():
     class Stubbed(StdIOHandler):
         name = 'test'
         input_tags = ['a', 'b']
+        output_tags = ['x', 'y']
 
         def process(self, infile):
             yield {'msg': 'a'}
@@ -29,6 +30,7 @@ def stubbedconv():
     class Mangler(Collector):
         name = 'test'
         input_tags = ['a', 'b']
+        output_tags = ['x', 'y']
 
         def parse(self, msg):
             return {'msg': msg}
@@ -65,7 +67,8 @@ class TestStdIOHandler(object):
     def test_get_configuration(self, stubbedio):
         assert stubbedio.get_configuration() == stubbedio.serializer.dump({
             'name': stubbedio.name,
-            'input_tags': stubbedio.input_tags
+            'input_tags': stubbedio.input_tags,
+            'output_tags': stubbedio.output_tags,
         })
 
     # test run

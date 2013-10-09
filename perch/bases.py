@@ -20,6 +20,7 @@ class StdIOHandler(object):
         return self.serializer.dump({
             'name': self.name,
             'input_tags': self.input_tags,
+            'output_tags': self.output_tags,
         })
 
     def run(self, args=None):
