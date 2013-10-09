@@ -4,38 +4,35 @@ import os
 from .config import constants
 from .serializers import serializers
 from .utils import files_in_dir
+from functools import wraps
 
 
-class Discoverer(object):
-    categories = ['collector', 'renderer']
+def cache(func):
+    @wraps(func)
+    def inner(self):
+        cache_name = '__' + func.__name__ + '_cache'
 
+        if not getattr(self, cache_name, None):
+            setattr(self, cache_name, func(self))
+
+        return getattr(self, cache_name)
+
+    return inner
+
+
+class Graph(object):
     def __init__(self, directory):
         self.directory = directory
-        self._stages = []
-        self._classified = {}
 
-    def _find_stages(self):
+    @cache
+    def _stages(self):
         "find stages in a directory"
-        if self._stages:
-            return
+        return list(files_in_dir(self.directory))
 
-        self._stages = list(files_in_dir(self.directory))
-
-    def _classify_stages(self):
-        "classify the stages already found"
-        if self._classified:
-            return
-
-        self._classified = {
-            category: {
-                f for f in self._stages
-                if category in f.relto(self.directory)
-            }
-            for category in self.categories
+    @cache
+    def _configurations(self):
+        "find configurations for all stages"
+        return {
+            stage: {}
+            for stage in self._stages()
         }
-
-    def discover(self):
-        "discover stages"
-        self._find_stages()
-        self._classify_stages()
-        return self._classified

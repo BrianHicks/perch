@@ -1,44 +1,56 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import json
 import pytest
 
-from perch.router import Discoverer
+from perch.router import Graph
 
 @pytest.fixture
 def empty(tmpdir):
     return tmpdir
 
+def content(name, intags, outtags):
+    return """#!/bin/sh\n/bin/echo '%s' """ % json.dumps({
+        'name': name,
+        'input_tags': intags,
+        'output_tags': outtags,
+    })
+
 @pytest.fixture(params=[
-    'test_collector.py',
-    'collectors/test.py'
+    # test single files
+    (
+        ('a.py', ('a', ('filesystem',), ('post',))),
+    ),
+    # test multiple files
+    (
+        ('a.py', ('a', ('filesystem',), ('post',))),
+        ('b.py', ('a', ('post',), ('tag',))),
+    ),
+    # test files in directories
+    (
+        ('static/pngcrush.py', ('pngcrush', ('filesystem',), ('static',))),
+        ('static/sass.py', ('sass', ('filesystem',), ('static',))),
+    ),
+    # test mixed
+    (
+        ('pngcrush.py', ('pngcrush', ('filesystem',), ('static',))),
+        ('static/sass.py', ('sass', ('filesystem',), ('static',))),
+    ),
 ])
 def collectors(request, empty):
-    empty.join(request.param).ensure()
+    for fname, fcontent in request.param:
+        f = empty.join(fname)
+        f.ensure()
+        f.write(content(*fcontent))
 
     return empty, request.param
 
 
 @pytest.mark.incremental
-class TestDiscoverer(object):
-    def test_find_stages(self, collectors):
-        tmpdir, name = collectors
+class TestGraph(object):
+    def test_stages(self, collectors):
+        tmpdir, files = collectors
 
-        d = Discoverer(tmpdir)
-        d._find_stages()
+        d = Graph(tmpdir)
 
-        assert list(d._stages) == [tmpdir.join(name)]
-
-    def test_classify_stages(self, collectors):
-        tmpdir, name = collectors
-
-        d = Discoverer(tmpdir)
-        d._find_stages()
-        d._classify_stages()
-
-        assert d._classified == {"collector": set([tmpdir.join(name)]), 'renderer': set()}
-
-    def test_discover(self, collectors):
-        tmpdir, name = collectors
-        
-        d = Discoverer(tmpdir)
-        assert d.discover() == {"collector": set([tmpdir.join(name)]), 'renderer': set()}
+        assert set(d._stages()) == set(tmpdir.join(f[0]) for f in files)
