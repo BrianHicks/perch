@@ -3,7 +3,7 @@
 import json
 import pytest
 
-from perch.router import Graph
+from perch.router import Graph, Stage
 
 @pytest.fixture
 def empty(tmpdir):
@@ -54,3 +54,32 @@ class TestGraph(object):
         d = Graph(tmpdir)
 
         assert set(d._stages()) == set(tmpdir.join(f[0]) for f in files)
+
+@pytest.mark.incremental
+class TestStage(object):
+    @pytest.mark.parametrize("fname,content,output", [
+        ('test.py', '#!/usr/bin/env python', '/usr/bin/env python'),
+        ('test.py', 'some content', 'python'),
+        ('test.py', '', 'python'),
+        ('test.rb', '', 'ruby'),
+        ('test.js', '', 'node'),
+        ('test.sh', '', 'bash'),
+        ('test', '#!/usr/bin/env python', '/usr/bin/env python')
+    ])
+    def test_runner(self, tmpdir, fname, content, output):
+        f = tmpdir.join(fname)
+        f.write(content)
+
+        stage = Stage(f)
+
+        assert stage.runner() == output.split()
+
+    def test_runner_error(self, tmpdir):
+        f = tmpdir.join('test.badext')
+        f.write('')
+        stage = Stage(f)
+
+        with pytest.raises(ValueError) as exc:
+            stage.runner()
+
+        assert str(exc).endswith("I don't know how to handle .badext files!")
