@@ -72,7 +72,7 @@ class TestStage(object):
 
         stage = Stage(f)
 
-        assert stage.runner() == output.split()
+        assert stage.runner() == output
 
     def test_runner_error(self, tmpdir):
         f = tmpdir.join('test.badext')

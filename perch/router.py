@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+
 from .config import constants
 from .serializers import serializers
 from .utils import files_in_dir
-from functools import wraps
-import shlex
 
 
 def cache(func):
@@ -45,11 +44,11 @@ class Stage(object):
             shebang = ''
 
         if shebang.startswith('#!'):
-            return shlex.split(shebang[2:])
+            return shebang[2:]
 
         # if that didn't work, guess from the extension
         try:
-            return shlex.split(self.runners[self.pathfile.ext])
+            return self.runners[self.pathfile.ext]
         except KeyError:
             raise ValueError(
                 "I don't know how to handle %s files!" % self.pathfile.ext
