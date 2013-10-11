@@ -12,25 +12,14 @@ from .utils import files_in_dir
 from .errors import BadRunner, BadExit
 
 
-def cache(func):
-    @wraps(func)
-    def inner(self):
-        cache_name = '__' + func.__name__ + '_cache'
-
-        if not getattr(self, cache_name, None):
-            setattr(self, cache_name, func(self))
-
-        return getattr(self, cache_name)
-
-    return inner
-
-
 class Stage(object):
     def __init__(self, pathfile):
         self.pathfile = pathfile
         self.serializer = serializers.get(
             constants.serializer_key, serializers[constants.default_serializer]
         )()
+
+        self.runner = self._runner()
 
     runners = {
         '.py': 'python',
@@ -39,8 +28,7 @@ class Stage(object):
         '.sh': 'bash',
     }
 
-    @cache
-    def runner(self):
+    def _runner(self):
         "get the runner for this instance"
         # first, look at the shebang
         try:
@@ -60,13 +48,11 @@ class Stage(object):
             )
 
     def run(self, cmd, stdin=None, timeout=None):
+        cmd = split(self.runner) + [str(self.pathfile)] + split(cmd)
         try:
-            response = Popen(
-                split(self.runner()) + [str(self.pathfile)] + split(cmd),
-                stdin=PIPE, stdout=PIPE, stderr=PIPE
-            )
+            response = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         except OSError:
-            raise BadRunner('No such file or directory: %s' % self.runner())
+            raise BadRunner('No such file or directory: %s' % self.runner)
 
         stdout, stderr = response.communicate(stdin)
 
@@ -83,10 +69,13 @@ class Stage(object):
 
         return loaded, stderr, response.returncode
 
-    @cache
+    @property
     def configuration(self):
-        out, _, _ = self.run('config')
-        return out[0]
+        if not getattr(self, '_configuration', None):
+            out, _, _ = self.run('config')
+            self._configuration = out[0]
+
+        return self._configuration
 
     def process(self, objs):
         lines = '\n'.join(
@@ -102,12 +91,10 @@ class Graph(object):
     def __init__(self, directory):
         self.directory = directory
 
-    @cache
     def _stages(self):
         "find stages in a directory"
         return list(files_in_dir(self.directory))
 
-    @cache
     def _configurations(self):
         "find configurations for all stages"
         return {

@@ -74,15 +74,14 @@ class TestStage(object):
 
         stage = Stage(f)
 
-        assert stage.runner() == output
+        assert stage._runner() == output
 
     def test_runner_error(self, tmpdir):
         f = tmpdir.join('test.badext')
         f.write('')
-        stage = Stage(f)
 
         with pytest.raises(ValueError) as exc:
-            stage.runner()
+            Stage(f)._runner()
 
         assert str(exc).endswith("I don't know how to handle .badext files!")
 
@@ -113,7 +112,7 @@ class TestStage(object):
 
         stage = Stage(f)
 
-        assert stage.configuration() == {
+        assert stage.configuration == {
             'name': 'a',
             'input_tags': ['x'], 'output_tags': ['y']
         }
