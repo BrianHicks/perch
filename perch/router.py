@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from collections import namedtuple
+import envoy
+from functools import wraps
 import os
+from shlex import split
+from subprocess import Popen, PIPE
 
 from .config import constants
 from .serializers import serializers
 from .utils import files_in_dir
+from .errors import BadRunner, BadExit
 
 
 def cache(func):
@@ -25,7 +31,7 @@ class Stage(object):
         self.pathfile = pathfile
         self.serializer = serializers.get(
             constants.serializer_key, serializers[constants.default_serializer]
-        )
+        )()
 
     runners = {
         '.py': 'python',
@@ -54,12 +60,34 @@ class Stage(object):
                 "I don't know how to handle %s files!" % self.pathfile.ext
             )
 
-    # @attribute
-    # @cache
-    # def configuration(self):
+    def run(self, cmd, stdin=None, timeout=None):
+        try:
+            response = Popen(
+                split(self.runner()) + [str(self.pathfile)] + split(cmd),
+                stdin=PIPE, stdout=PIPE, stderr=PIPE
+            )
+        except OSError:
+            raise BadRunner('No such file or directory: %s' % self.runner())
 
-    # def run(self, obj):
+        stdout, stderr = response.communicate(stdin)
 
+        if response.returncode != 0:
+            raise BadExit('Response code %s. Stdout:\n\n%s\n\nStderr:\n\n%s' % (
+                response.returncode, stdout, stderr
+            ))
+
+        loaded = self.serializer.load(stdout)
+
+        return loaded, stderr, response.returncode
+
+    @cache
+    def configuration(self):
+        out, _, _ = self.run('config')
+        return out
+
+    @cache
+    def process(self, objs):
+        raise NotImplementedError
 
 
 class Graph(object):

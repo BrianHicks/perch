@@ -4,6 +4,7 @@ import json
 import pytest
 
 from perch.router import Graph, Stage
+from perch.errors import BadRunner, BadExit
 
 @pytest.fixture
 def empty(tmpdir):
@@ -83,3 +84,37 @@ class TestStage(object):
             stage.runner()
 
         assert str(exc).endswith("I don't know how to handle .badext files!")
+
+    def test_run_config(self, tmpdir):
+        f = tmpdir.join('test')
+        f.write(content('a', ['x'], ['y']))
+
+        try:
+            Stage(f).run('config')
+        except Exception as exc:
+            assert False, exc
+
+    def test_run_bad_shebang(self, tmpdir):
+        f = tmpdir.join('test')
+        f.write('#!/usr/bin/some-bad-filename')
+
+        with pytest.raises(BadRunner) as exc:
+            Stage(f).run('config')
+
+    def test_nonzero_exit_code(self, tmpdir):
+        f = tmpdir.join('test.sh')
+        f.write('exit 1')
+
+        with pytest.raises(BadExit) as exc:
+            Stage(f).run('config')
+
+    def test_configuration(self, tmpdir):
+        f = tmpdir.join('test')
+        f.write(content('a', ['x'], ['y']))
+
+        stage = Stage(f)
+
+        assert stage.configuration() == {
+            'name': 'a',
+            'input_tags': ['x'], 'output_tags': ['y']
+        }
