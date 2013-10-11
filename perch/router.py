@@ -26,6 +26,7 @@ class Stage(object):
         '.rb': 'ruby',
         '.js': 'node',
         '.sh': 'bash',
+        '.pl': 'perl',
     }
 
     def _runner(self):
@@ -40,12 +41,7 @@ class Stage(object):
             return shebang[2:]
 
         # if that didn't work, guess from the extension
-        try:
-            return self.runners[self.pathfile.ext]
-        except KeyError:
-            raise ValueError(
-                "I don't know how to handle %s files!" % self.pathfile.ext
-            )
+        return self.runners.get(self.pathfile.ext, self.runners['.sh'])
 
     def run(self, cmd, stdin=None, timeout=None):
         cmd = split(self.runner) + [str(self.pathfile)] + split(cmd)

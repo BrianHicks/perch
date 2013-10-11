@@ -66,7 +66,9 @@ class TestStage(object):
         ('test.rb', '', 'ruby'),
         ('test.js', '', 'node'),
         ('test.sh', '', 'bash'),
-        ('test', '#!/usr/bin/env python', '/usr/bin/env python')
+        ('test.pl', '', 'perl'),
+        ('test',    '', 'bash'),
+        ('test',    '#!/usr/bin/env python', '/usr/bin/env python')
     ])
     def test_runner(self, tmpdir, fname, content, output):
         f = tmpdir.join(fname)
@@ -75,15 +77,6 @@ class TestStage(object):
         stage = Stage(f)
 
         assert stage._runner() == output
-
-    def test_runner_error(self, tmpdir):
-        f = tmpdir.join('test.badext')
-        f.write('')
-
-        with pytest.raises(ValueError) as exc:
-            Stage(f)._runner()
-
-        assert str(exc).endswith("I don't know how to handle .badext files!")
 
     def test_run_config(self, tmpdir):
         f = tmpdir.join('test')
