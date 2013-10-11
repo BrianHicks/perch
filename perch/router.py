@@ -75,14 +75,17 @@ class Stage(object):
                 response.returncode, stdout, stderr
             ))
 
-        loaded = self.serializer.load(stdout)
+        loaded = [
+            self.serializer.load(line)
+            for line in stdout.strip().split('\n')
+        ]
 
         return loaded, stderr, response.returncode
 
     @cache
     def configuration(self):
         out, _, _ = self.run('config')
-        return out
+        return out[0]
 
     @cache
     def process(self, objs):
