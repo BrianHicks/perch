@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from collections import namedtuple
-import envoy
 from functools import wraps
 import os
 from shlex import split
