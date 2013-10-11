@@ -21,6 +21,12 @@ class Stage(object):
 
         self.runner = self._runner()
 
+    def __eq__(self, other):
+        return str(self.pathfile) == str(other.pathfile)
+
+    def __repr__(self):
+        return 'Stage(%r)' % self.pathfile
+
     runners = {
         '.py': 'python',
         '.rb': 'ruby',

@@ -7,10 +7,6 @@ from textwrap import dedent
 from perch.router import Graph, Stage
 from perch.errors import BadRunner, BadExit
 
-@pytest.fixture
-def empty(tmpdir):
-    return tmpdir
-
 def content(name, intags, outtags):
     return """#!/bin/sh\n/bin/echo '%s' """ % json.dumps({
         'name': name,
@@ -129,3 +125,24 @@ class TestStage(object):
         stage = Stage(f)
 
         assert stage.process(lines) == lines
+
+    def test_equality(self, tmpdir):
+        f = tmpdir.join('test.py')
+        f.ensure()
+
+        assert Stage(f) == Stage(f)
+
+    def test_inequality(self, tmpdir):
+        f = tmpdir.join('test.py')
+        f.ensure()
+
+        g = tmpdir.join('test2.py')
+        g.ensure()
+
+        assert Stage(f) != Stage(g)
+
+    def test_repr(self, tmpdir):
+        f = tmpdir.join('test.py')
+        f.ensure()
+
+        assert repr(Stage(f)) == 'Stage(%r)' % f
