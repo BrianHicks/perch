@@ -120,7 +120,7 @@ class TestStage(object):
     def test_process(self, tmpdir):
         f = tmpdir.join('test.py')
         f.write(dedent('''
-            from __future__ import unicode_literals
+            from __future__ import print_function
             import sys
             
             for line in sys.stdin.readlines():

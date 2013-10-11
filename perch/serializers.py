@@ -19,10 +19,9 @@ class JSONSerializer(object):
             return json.JSONEncoder.default(self, obj)
 
     def load(self, serialized):
-        print(repr(serialized))
         try:
             serialized = serialized.decode('utf-8')
-        except AttributeError: # already a str/bytes
+        except AttributeError: # already a str/unicode
             pass
 
         return json.loads(serialized)

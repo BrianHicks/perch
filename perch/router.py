@@ -54,7 +54,7 @@ class Stage(object):
         except OSError:
             raise BadRunner('No such file or directory: %s' % self.runner)
 
-        stdout, stderr = response.communicate(stdin.encode('utf-16be') if stdin else stdin)
+        stdout, stderr = response.communicate(stdin.encode('utf-8') if stdin else stdin)
 
         if response.returncode != 0:
             raise BadExit('Response code %s. Stdout:\n\n%s\n\nStderr:\n\n%s' % (
