@@ -89,10 +89,8 @@ class TestStage(object):
         f = tmpdir.join('test')
         f.write(content('a', ['x'], ['y']))
 
-        try:
-            Stage(f).run('config')
-        except Exception as exc:
-            assert False, exc
+        # if this fails, it'll fail. yay.
+        Stage(f).run('config')
 
     def test_run_bad_shebang(self, tmpdir):
         f = tmpdir.join('test')
