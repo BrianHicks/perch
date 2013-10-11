@@ -92,14 +92,7 @@ class Stage(object):
 class Graph(object):
     def __init__(self, directory):
         self.directory = directory
-
-    def _stages(self):
-        "find stages in a directory"
-        return list(files_in_dir(self.directory))
-
-    def _configurations(self):
-        "find configurations for all stages"
-        return {
-            stage: {}
-            for stage in self._stages()
-        }
+        self.stages = [
+            Stage(f)
+            for f in files_in_dir(self.directory)
+        ]

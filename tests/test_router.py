@@ -14,44 +14,34 @@ def content(name, intags, outtags):
         'output_tags': outtags,
     })
 
-@pytest.fixture(params=[
-    # test single files
-    (
-        ('a.py', ('a', ('filesystem',), ('post',))),
-    ),
-    # test multiple files
-    (
-        ('a.py', ('a', ('filesystem',), ('post',))),
-        ('b.py', ('a', ('post',), ('tag',))),
-    ),
-    # test files in directories
-    (
-        ('static/pngcrush.py', ('pngcrush', ('filesystem',), ('static',))),
-        ('static/sass.py', ('sass', ('filesystem',), ('static',))),
-    ),
-    # test mixed
-    (
-        ('pngcrush.py', ('pngcrush', ('filesystem',), ('static',))),
-        ('static/sass.py', ('sass', ('filesystem',), ('static',))),
-    ),
-])
-def collectors(request, empty):
-    for fname, fcontent in request.param:
-        f = empty.join(fname)
-        f.ensure()
-        f.write(content(*fcontent))
 
-    return empty, request.param
+class FakeStage(Stage):
+    def __init__(self, n, i, o, *args, **kwargs):
+        self.configuration = {
+            'name': n,
+            'input_tags': i,
+            'output_tags': o,
+        }
+        super(FakeStage, self).__init__(*args, **kwargs)
 
 
 @pytest.mark.incremental
 class TestGraph(object):
-    def test_stages(self, collectors):
-        tmpdir, files = collectors
+    def test_stages(self, tmpdir):
+        tmpdir
+        files = [
+            tmpdir.join(f) for f in
+            ['a/b.py', 'c.py', 'd.py']
+        ]
+        for f in files:
+            f.ensure(file=True)
+            f.write('test')
 
-        d = Graph(tmpdir)
+        graph = Graph(tmpdir)
+        stages = list(map(Stage, files))
 
-        assert set(d._stages()) == set(tmpdir.join(f[0]) for f in files)
+        assert graph.stages == stages
+
 
 @pytest.mark.incremental
 class TestStage(object):
