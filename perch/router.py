@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from collections import namedtuple
 from functools import wraps
+from itertools import chain
 import os
 from shlex import split
 from subprocess import Popen, PIPE
@@ -22,10 +23,13 @@ class Stage(object):
         self.runner = self._runner()
 
     def __eq__(self, other):
-        return str(self.pathfile) == str(other.pathfile)
+        return self.pathfile == other.pathfile
+
+    def __hash__(self):
+        return hash(self.pathfile)
 
     def __repr__(self):
-        return 'Stage(%r)' % self.pathfile
+        return 'Stage(%r)' % self.pathfile.basename
 
     runners = {
         '.py': 'python',
@@ -90,9 +94,32 @@ class Stage(object):
 
 
 class Graph(object):
-    def __init__(self, directory):
+    def __init__(self, directory, stages=None):
         self.directory = directory
-        self.stages = [
+        self.stages = stages if stages is not None else [
             Stage(f)
             for f in files_in_dir(self.directory)
         ]
+        self.graph = self._build_graph()
+
+    def __getitem__(self, name):
+        for stage in self.stages:
+            if stage.configuration['name'] == name:
+                return stage
+
+        raise KeyError('No stage "%s"' % name)
+
+
+    def _build_graph(self):
+        tags = chain.from_iterable(
+            stage.configuration['output_tags'] + stage.configuration['input_tags']
+            for stage in self.stages
+        )
+
+        return {
+            name: set(
+                stage for stage in self.stages
+                if name in stage.configuration['input_tags']
+            )
+            for name in tags
+        }

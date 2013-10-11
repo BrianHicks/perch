@@ -8,40 +8,90 @@ from perch.router import Graph, Stage
 from perch.errors import BadRunner, BadExit
 
 def content(name, intags, outtags):
-    return """#!/bin/sh\n/bin/echo '%s' """ % json.dumps({
+    return dedent("""
+        #!/usr/bin/env python
+        from __future__ import print_function
+        import sys
+
+        if sys.argv[-1] == "config":
+            print('%s')
+
+        if sys.argv[-1] == "process":
+            for l in sys.stdin.readlines():
+                print(l)
+    """ % json.dumps({
         'name': name,
         'input_tags': intags,
         'output_tags': outtags,
-    })
+    })).strip()
 
+def makestage(tname, *content_args):
+    "make a stage object given a temp name and content args"
+    tname.ensure()
+    tname.write(content(*content_args))
 
-class FakeStage(Stage):
-    def __init__(self, n, i, o, *args, **kwargs):
-        self.configuration = {
-            'name': n,
-            'input_tags': i,
-            'output_tags': o,
-        }
-        super(FakeStage, self).__init__(*args, **kwargs)
+    s = Stage(tname)
+    return s
 
 
 @pytest.mark.incremental
 class TestGraph(object):
     def test_stages(self, tmpdir):
-        tmpdir
         files = [
-            tmpdir.join(f) for f in
-            ['a/b.py', 'c.py', 'd.py']
+            makestage(tmpdir.join(f), f.rstrip('.py'), [], [])
+            for f in ['a/b.py', 'c.py', 'd.py']
         ]
-        for f in files:
-            f.ensure(file=True)
-            f.write('test')
 
         graph = Graph(tmpdir)
-        stages = list(map(Stage, files))
 
-        assert graph.stages == stages
+        assert graph.stages == files
 
+    def test_get_by_name(self, tmpdir):
+        stage = makestage(tmpdir.join('a.py'), 'a', [], [])
+        g = Graph(None, [stage])
+
+        assert g['a'] == stage
+
+    def test_get_by_name_fail(self):
+        with pytest.raises(KeyError):
+            Graph(None, [])['a']
+
+
+    def test_build_graph_single_chain(self, tmpdir):
+        a = makestage(tmpdir.join('a.py'), 'a', ['f'], ['a'])
+        b = makestage(tmpdir.join('b.py'), 'b', ['a'], ['b'])
+
+        assert Graph(tmpdir).graph == {
+            'f': set([a]),
+            'a': set([b]),
+            'b': set(),
+        }
+
+    def test_build_graph_multiple_chain(self, tmpdir):
+        a = makestage(tmpdir.join('a.py'), 'a', ['f'], ['a'])
+        b = makestage(tmpdir.join('b.py'), 'b', ['a'], ['b'])
+        c = makestage(tmpdir.join('c.py'), 'c', ['a'], ['c'])
+
+        assert Graph(tmpdir).graph == {
+            'f': set([a]),
+            'a': set([b, c]),
+            'b': set(),
+            'c': set(),
+        }
+
+    def test_build_graph_with_empty(self, tmpdir):
+        makestage(tmpdir.join('a.py'), 'a', [], [])
+        assert Graph(tmpdir).graph == {}
+
+    def test_build_input_empty(self, tmpdir):
+        makestage(tmpdir.join('a.py'), 'a', [], ['b'])
+        assert Graph(tmpdir).graph == {'b': set()}
+
+    def test_build_output_empty(self, tmpdir):
+        a = makestage(tmpdir.join('a.py'), 'a', ['a'], [])
+        assert Graph(tmpdir).graph == {
+            'a': set([a]),
+        }
 
 @pytest.mark.incremental
 class TestStage(object):
@@ -65,11 +115,7 @@ class TestStage(object):
         assert stage._runner() == output
 
     def test_run_config(self, tmpdir):
-        f = tmpdir.join('test')
-        f.write(content('a', ['x'], ['y']))
-
-        # if this fails, it'll fail. yay.
-        Stage(f).run('config')
+        makestage(tmpdir.join('test'), 'a', ['x'], ['y']).run('config')
 
     def test_run_bad_shebang(self, tmpdir):
         f = tmpdir.join('test')
@@ -135,4 +181,4 @@ class TestStage(object):
         f = tmpdir.join('test.py')
         f.ensure()
 
-        assert repr(Stage(f)) == 'Stage(%r)' % f
+        assert repr(Stage(f)) == 'Stage(%r)' % f.basename
