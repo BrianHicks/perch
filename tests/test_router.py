@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import json
 import pytest
+from textwrap import dedent
 
 from perch.router import Graph, Stage
 from perch.errors import BadRunner, BadExit
@@ -116,3 +117,23 @@ class TestStage(object):
             'name': 'a',
             'input_tags': ['x'], 'output_tags': ['y']
         }
+
+    def test_process(self, tmpdir):
+        f = tmpdir.join('test.py')
+        f.write(dedent('''
+            from __future__ import unicode_literals
+            import sys
+            
+            for line in sys.stdin.readlines():
+                print(line)
+        '''))
+
+        lines = [
+            {'a': 'b'},
+            {'b': 'c'},
+            {'c': 'd'},
+        ]
+
+        stage = Stage(f)
+
+        assert stage.process(lines) == lines

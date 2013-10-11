@@ -78,6 +78,7 @@ class Stage(object):
         loaded = [
             self.serializer.load(line)
             for line in stdout.strip().split('\n')
+            if line
         ]
 
         return loaded, stderr, response.returncode
@@ -87,9 +88,14 @@ class Stage(object):
         out, _, _ = self.run('config')
         return out[0]
 
-    @cache
     def process(self, objs):
-        raise NotImplementedError
+        lines = '\n'.join(
+            self.serializer.dump(obj)
+            for obj in objs
+        )
+        out, _, _ = self.run('process', lines)
+
+        return out
 
 
 class Graph(object):
