@@ -93,6 +93,14 @@ class TestGraph(object):
             'a': set([a]),
         }
 
+    def test_stages_for_tag_present(self, tmpdir):
+        a = makestage(tmpdir.join('a.py'), 'a', ['a'], [])
+        assert Graph(tmpdir).stages_for_tag('a') == set([a])
+
+    def test_stages_for_tag_absent(self, tmpdir):
+        assert Graph(tmpdir).stages_for_tag('a') == set()
+
+
 @pytest.mark.incremental
 class TestStage(object):
     @pytest.mark.parametrize("fname,content,output", [

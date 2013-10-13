@@ -123,3 +123,6 @@ class Graph(object):
             )
             for name in tags
         }
+
+    def stages_for_tag(self, tag):
+        return self.graph.get(tag, set())
