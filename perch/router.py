@@ -126,3 +126,41 @@ class Graph(object):
 
     def stages_for_tag(self, tag):
         return self.graph.get(tag, set())
+
+
+class Coordinator(object):
+    def __init__(self, graph):
+        self.graph = graph
+
+    def process_dir(self, directory):
+        return self.process_files(files_in_dir(directory))
+
+    def process_files(self, files):
+        objs = [
+            {'filename': f.strpath, 'tags': ['filesystem']}
+            for f in files
+        ]
+        finalized = []
+
+        while True:
+            # get current content
+            current = []
+            for tag in set(chain.from_iterable(obj['tags'] for obj in objs)):
+                current += chain.from_iterable(self.process_tag(tag, objs))
+
+            # straing off the rendered files
+            objs = []
+            for obj in current:
+                if 'rendered' in obj['tags']:
+                    finalized.append(obj)
+                else:
+                    objs.append(obj)
+
+            if not objs:
+                break
+
+        return finalized
+
+    def process_tag(self, tag, objs):
+        for stage in self.graph.stages_for_tag(tag):
+            yield stage.process(objs)

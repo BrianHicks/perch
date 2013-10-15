@@ -4,26 +4,33 @@ import json
 import pytest
 from textwrap import dedent
 
-from perch.router import Graph, Stage
 from perch.errors import BadRunner, BadExit
+from perch.router import Graph, Stage, Coordinator
+from perch.utils import files_in_dir
 
 def content(name, intags, outtags):
     return dedent("""
         #!/usr/bin/env python
         from __future__ import print_function
         import sys
+        import json
 
         if sys.argv[-1] == "config":
-            print('%s')
+            print('{doc}')
 
         if sys.argv[-1] == "process":
             for l in sys.stdin.readlines():
-                print(l)
-    """ % json.dumps({
-        'name': name,
-        'input_tags': intags,
-        'output_tags': outtags,
-    })).strip()
+                obj = json.loads(l)
+                obj['tags'] = {outtags}
+                print(json.dumps(obj))
+    """.format(
+        doc=json.dumps({
+            'name': name,
+            'input_tags': intags,
+            'output_tags': outtags,
+        }),
+        outtags=str(outtags)
+    )).strip()
 
 def makestage(tname, *content_args):
     "make a stage object given a temp name and content args"
@@ -190,3 +197,55 @@ class TestStage(object):
         f.ensure()
 
         assert repr(Stage(f)) == 'Stage(%r)' % f.basename
+
+
+@pytest.fixture
+def filled_coordinator(tmpdir):
+    post = makestage(tmpdir.join('post.py'), 'post', ['filesystem'], ['post'])
+    archive = makestage(tmpdir.join('archive.py'), 'archive', ['post'], ['archive'])
+    jinja = makestage(tmpdir.join('jinja.py'), 'jinja', ['post', 'archive'], ['rendered'])
+
+    return Coordinator(Graph(tmpdir))
+
+@pytest.fixture
+def some_content(tmpdir):
+    cdir = tmpdir.join('content')
+    cdir.join('x.md').ensure()
+    cdir.join('y.md').ensure()
+
+    return cdir
+
+
+@pytest.mark.incremental
+class TestCoordinator(object):
+    def test_process_tag_present(self, filled_coordinator):
+        processed = filled_coordinator.process_tag('archive', [{'tags': ['post']}])
+        assert [[{'tags': ['rendered']}]] == list(processed)
+
+    def test_process_tag_absent(self, filled_coordinator):
+        processed = filled_coordinator.process_tag('asdf', [{'tags': ['post']}])
+        assert [] == list(processed)
+
+    def test_process_files(self, filled_coordinator, some_content):
+        processed = filled_coordinator.process_files(files_in_dir(some_content))
+        should = [
+            {'filename': some_content.join('y.md').strpath, 'tags': ['rendered']},
+            {'filename': some_content.join('y.md').strpath, 'tags': ['rendered']},
+            {'filename': some_content.join('x.md').strpath, 'tags': ['rendered']},
+            {'filename': some_content.join('x.md').strpath, 'tags': ['rendered']},
+        ]
+
+        for item in should:
+            assert item in processed
+
+    def test_process_dir(self, filled_coordinator, some_content):
+        processed = filled_coordinator.process_dir(some_content)
+        should = [
+            {'filename': some_content.join('y.md').strpath, 'tags': ['rendered']},
+            {'filename': some_content.join('y.md').strpath, 'tags': ['rendered']},
+            {'filename': some_content.join('x.md').strpath, 'tags': ['rendered']},
+            {'filename': some_content.join('x.md').strpath, 'tags': ['rendered']},
+        ]
+
+        for item in should:
+            assert item in processed
